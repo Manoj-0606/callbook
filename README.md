@@ -202,59 +202,69 @@ I also ran an axe-core accessibility check (WCAG 2.1 A and AA) on every page and
 
 ## Deploying (Vercel + Turso)
 
-The repo is set up to run on Vercel with a Turso database, but I haven't deployed it myself. So far the build, the migrations and the demo data have only run against the local SQLite file, not a real Turso database. These are the steps it's set up for:
+The application is deployed on Vercel with Turso as the production database.
 
-1. Create a Turso database, then get its URL and a token:
-   ```bash
-   turso db create callbook
-   turso db show callbook --url
-   turso db tokens create callbook
-   ```
-2. Import the repo into Vercel.
-3. Set these environment variables for Production:
-   - `DATABASE_URL` and `DATABASE_AUTH_TOKEN`, from step 1
+### Production setup
+
+1. Create a Turso database and obtain its URL and authentication token.
+2. Import the repository into Vercel.
+3. Configure these environment variables for **Production**:
+   - `DATABASE_URL`
+   - `DATABASE_AUTH_TOKEN`
    - `CALLBOOK_PASSWORD`
-   - a new `AUTH_SECRET`, generated with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
-4. Deploy. `vercel.json` sets the build command to `npm run vercel-build`. That applies the migrations, loads the demo data if the database is empty, and then builds.
+   - `AUTH_SECRET`
+4. Deploy the `main` branch.
 
-On Vercel the app refuses to use a local SQLite file. If `DATABASE_URL` is missing, the build fails with a clear message rather than saving data to a disk that gets wiped.
+The Vercel build runs `npm run vercel-build`, which applies database migrations, seeds the database if it is empty, and then builds the application.
 
-To put the hosted demo back to a known state before showing it, run the reset from your machine against Turso:
+The production application is available at:
+
+https://callbook-one.vercel.app
+
+### Local database reset
+
+For local development/demo testing, the database can be reset and reseeded with:
 
 ```bash
-DATABASE_URL=libsql://… DATABASE_AUTH_TOKEN=… npm run db:reset
-```
-
-Every build runs the migrations. If Preview deployments get the same database variables, they'll migrate the production database too. Set the variables for Production only, or give previews a database of their own.
-
-**There's no rate limiting in the app.** A wrong password costs an extra 600 ms, and the public form has the honeypot and length limits. But nothing stops someone from sending a lot of requests. An in-app limiter would need shared storage such as Redis, because serverless instances don't share memory. Instead I'd add a Vercel Firewall rule that rate-limits `POST` requests to `/request` and `/login` by IP.
-
-When you share a hosted demo, send the password along with the link. Don't commit it here.
-
+npm run db:reset
 ## How to demo
 
-Start from fresh demo data (`npm run db:reset`). The walkthrough takes about five minutes.
+### Production demo
 
-1. **As a customer:** open `/request` in a private window or on your phone. Send a request with "Is this an emergency?" ticked. All you get back is the thank-you message.
-2. **Sign in as Denise.** Today reads like her sentence: new requests, one job that said yes, callbacks due, quotes to write, a quote that's gone quiet and a visit to check on. Your request is at the top of New, marked as an emergency, from the website form.
-3. **Work the list.** On your request, tap Log call and choose "Talked to them", then "Needs a quote". It moves to "Waiting on a quote from us". Tap Mark quote sent, enter an amount, and it's off the list.
-4. **Tall Pines Brewing** has said yes. Tap Schedule and pick a tech and a day, and it leaves Today.
-5. Open **New request** and type `512 555 0112`. The form recognizes Sunrise Diner with 3 past jobs and warns that there's already an open job.
-6. On **Jobs**, search for `0112` or "sunrise", try the Closed filter, and open a job. Its history has everything you've done.
-7. Click the customer's name at the top of a job to see the **customer page**, with all their jobs and one combined history.
-8. Reload, and it's all still there. Sign out, go straight to `/jobs`, and you're sent to the sign-in page.
+Open:
+
+https://callbook-one.vercel.app
+
+Sign in using the reviewer password provided with the submission.
+
+The production demo includes seeded Callbook data covering new requests, quotes, callbacks, scheduling, completed work, and customer history.
+
+A typical walkthrough:
+
+1. Open **Today** to see who needs follow-up.
+2. Open a job and use **Log call** to record a call outcome.
+3. Use **Mark quote sent** to move a job through the quote workflow.
+4. Open **Tall Pines Brewing**, use **Schedule**, select a technician and date, and save the visit.
+5. Use **New request** to create a new job and verify it appears on Today and Jobs.
+6. Open **Jobs**, search for a customer, filter by status, and open a job to view its history.
+7. Open a customer's history to see their jobs and combined activity.
+8. Sign out and verify that protected pages require authentication.
+9. Open `/request` in a private window to test the public request form.
+
+### Local demo
+
+For a fresh local database:
+
+```bash
+npm run db:reset
 
 ## Known limitations
 
-- **Not deployed yet, and not tested against a real Turso database.** See Deploying.
-- **The demo data ages.** Its dates are fixed when you load it, so a few days later jobs start showing as overdue. Reset before a demo.
-- **No rate limiting in the app** (see Deploying).
-- **Sessions can't be revoked one by one.** Signing out clears the cookie on that device. A copied cookie keeps working until it expires after 30 days or `AUTH_SECRET` changes, and changing the secret signs everyone out.
-- **One shared password,** so there's no record of who did what. That's fine while it's only Denise, but not once the techs use it.
-- **No editing or deleting.** You can't fix a typo in a customer's phone number or remove a spam request from inside the app. The best you can do with spam is close it as "Didn't go ahead" with the reason "Other".
-- **Holidays count as business days,** and the timezone is a single constant.
-- **Requests that come in by email or text still have to be typed in** with New request. Nothing reads her inbox or her phone.
-- **She has to open the app.** Nothing sends her the list or reminds her.
+- Single shared password for internal access; there is no per-user account or role system.
+- No in-app editing or deleting of existing customer/job information.
+- Email and text requests still need to be entered manually through New request.
+- No automatic reminders or notifications; users need to open the app to see the follow-up list.
+- No in-app rate limiting; the public request form includes a honeypot.
 
 ## What could come next
 
