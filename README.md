@@ -260,7 +260,7 @@ For a fresh local database:
 npm run db:reset
 
 ## Known limitations
-
+```
 - Single shared password for internal access; there is no per-user account or role system.
 - No in-app editing or deleting of existing customer/job information.
 - Email and text requests still need to be entered manually through New request.
