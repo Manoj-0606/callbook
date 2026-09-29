@@ -221,12 +221,13 @@ The production application is available at:
 
 https://callbook-one.vercel.app
 
-### Local database reset
+## Local database reset
 
 For local development/demo testing, the database can be reset and reseeded with:
 
 ```bash
 npm run db:reset
+
 ## How to demo
 
 ### Production demo
